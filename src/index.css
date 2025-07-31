@@ -1,0 +1,87 @@
+﻿@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Base Styles */
+body {
+  font-family: 'Inter', sans-serif;
+  margin: 0;
+  padding: 0;
+  color: #333;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-gray-100;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-gray-400 rounded;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-gray-600;
+}
+
+/* Component Styles */
+.nav-container {
+  @apply flex justify-between items-center p-4 bg-white shadow-sm;
+}
+
+.logo {
+  @apply text-xl font-bold text-blue-600;
+}
+
+.nav-link {
+  @apply mx-4 text-gray-600 hover:text-blue-600 transition-colors;
+}
+
+.btn {
+  @apply px-4 py-2 rounded-lg transition-all;
+}
+
+.btn-primary {
+  @apply bg-blue-600 text-white hover:bg-blue-700;
+}
+
+/* Hero Section */
+.hero-section {
+  @apply text-center py-16 bg-gray-50;
+}
+
+.hero-title {
+  @apply text-4xl font-bold mb-4;
+}
+
+.hero-subtitle {
+  @apply text-xl text-gray-600;
+}
+
+/* Tool Cards */
+.tool-card {
+  @apply bg-white rounded-lg p-6 shadow-md hover:shadow-lg transition-all hover:-translate-y-1;
+}
+
+.tool-card h3 {
+  @apply text-lg font-semibold text-blue-600 mb-2;
+}
+
+.tool-card p {
+  @apply text-gray-600 text-sm;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .nav-container {
+    @apply flex-col;
+  }
+  
+  .nav-links {
+    @apply mt-4;
+  }
+}

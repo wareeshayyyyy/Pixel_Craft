@@ -7,7 +7,7 @@
   [![GitHub stars](https://img.shields.io/github/stars/wareeshayyyyy/Pixel_Craft)](https://github.com/wareeshayyyyy/Pixel_Craft/stargazers)
   [![GitHub forks](https://img.shields.io/github/forks/wareeshayyyyy/Pixel_Craft)](https://github.com/wareeshayyyyy/Pixel_Craft/network)
   [![GitHub issues](https://img.shields.io/github/issues/wareeshayyyyy/Pixel_Craft)](https://github.com/wareeshayyyyy/Pixel_Craft/issues)
-  [![License](https://img.shields.io/github/license/wareeshayyyyy/Pixel_Craft)](LICENSE)
+  [![License](https://img.shields.io/github/license/wareeshayyyyy/Pixel_Craft)](https://github.com/wareeshayyyyy/Pixel_Craft/blob/main/LICENSE)
 </div>
 
 ## 🎯 Overview
@@ -207,12 +207,12 @@ We love contributions! Here's how you can help make PixelCraft Pro even better:
 
 ## 🐛 Bug Reports & Feature Requests
 
-- **Bug Reports**: [Create an Issue](https://github.com/wareeshayyyyy/Pixel_Craft/issues)
-- **Feature Requests**: [Start a Discussion](https://github.com/wareeshayyyyy/Pixel_Craft/discussions)
+- **Bug Reports**: [Create an Issue](https://github.com/wareeshayyyyy/Pixel_Craft/issues/new)
+- **Feature Requests**: [Create an Issue](https://github.com/wareeshayyyyy/Pixel_Craft/issues/new) with the "enhancement" label
 
 ## 📝 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License - see the [LICENSE](https://github.com/wareeshayyyyy/Pixel_Craft/blob/main/LICENSE) file for details.
 
 ## 👨‍💻 Author
 

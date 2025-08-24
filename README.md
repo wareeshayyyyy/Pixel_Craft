@@ -208,7 +208,7 @@ We love contributions! Here's how you can help make PixelCraft Pro even better:
 ## 🐛 Bug Reports & Feature Requests
 
 - **Bug Reports**: [Create an Issue](https://github.com/wareeshayyyyy/Pixel_Craft/issues/new)
-- **Feature Requests**: [Create an Issue](https://github.com/wareeshayyyyy/Pixel_Craft/issues/new) with the "enhancement" label
+- **Feature Requests**: [Create an Issue](https://github.com/wareeshayyyyy/Pixel_Craft/issues/new) 
 
 ## 📝 License
 
@@ -257,6 +257,6 @@ If you find PixelCraft Pro helpful, please consider:
 ---
 
 <div align="center">
-  <p>Made with ❤️ by <a href="https://github.com/wareeshayyyyy">Wareesh</a></p>
+  <p>Made with ❤️ by <a href="https://github.com/wareeshayyyyy">Wareesha</a></p>
   <p>🌟 <strong>Star this repo if you found it helpful!</strong> 🌟</p>
 </div>

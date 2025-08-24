@@ -1,4 +1,4 @@
-# PixelCraft Pro ✨
+# PixelCraft✨
 
 <div align="center">
   <h3>A Powerful All-in-One Image & PDF Editing Toolbox</h3>

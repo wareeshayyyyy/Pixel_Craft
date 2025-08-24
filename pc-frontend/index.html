@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PixelCraft</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Navbar -->
+    <nav>
+        <div class="logo">PixelCraft</div>
+        <div class="nav-links">
+            <a href="#">Home</a>
+            <a href="#all-tools">All Tools</a>
+            <a href="#">Business</a>
+            <a href="#" class="login">Login</a>
+            <a href="#" class="signup">Sign Up</a>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <h1>Every tool you could want to edit images in bulk</h1>
+        <p>Your online photo editor is here and forever free!</p>
+        
+        <!-- Category Buttons -->
+        <div class="categories">
+            <button class="category-btn active" data-category="all">All</button>
+            <button class="category-btn" data-category="optimize">Optimize</button>
+            <button class="category-btn" data-category="create">Create</button>
+            <button class="category-btn" data-category="edit">Edit</button>
+            <button class="category-btn" data-category="convert">Convert</button>
+            <button class="category-btn" data-category="security">Security</button>
+        </div>
+    </section>
+
+    <!-- Tools Grid -->
+    <section id="all-tools" class="tools-section">
+        <h2>All Image Tools</h2>
+        <div class="tools-grid">
+            <!-- Tool Cards will be dynamically inserted here by JavaScript -->
+        </div>
+    </section>
+
+    <script src="script.js"></script>
+</body>
+</html>

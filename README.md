@@ -74,7 +74,7 @@ PixelCraft Pro is a feature-rich web application designed to handle all your ima
 - **Tesseract.js** - Client-side OCR capabilities
 
 ### Backend 
-Python FastAPI
+- **Python FastAPI**
 
 ### Deployment
 - **Frontend**: Vercel / Netlify

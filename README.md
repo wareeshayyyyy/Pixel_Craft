@@ -73,10 +73,8 @@ PixelCraft Pro is a feature-rich web application designed to handle all your ima
 - **Canvas API / Sharp** - High-performance image processing
 - **Tesseract.js** - Client-side OCR capabilities
 
-### Backend (Optional)
-- **Node.js** 🟢 - Server-side JavaScript runtime
-- **Express.js** 🚀 - Fast, minimalist web framework
-- **Firebase / AWS** - Cloud storage and authentication
+### Backend 
+Python FastAPI
 
 ### Deployment
 - **Frontend**: Vercel / Netlify

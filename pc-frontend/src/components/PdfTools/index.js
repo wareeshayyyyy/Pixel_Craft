@@ -11,7 +11,7 @@ export { default as CropPdf } from './CropPdf';
 export { default as AddPageNumbers } from './AddPageNumbers';
 export { default as PdfToWord } from './PdfToWord';
 export { default as WordToPdf } from './WordToPdf';
-export { default as PdfToImage } from './PdfToImage';
+
 export { default as JpgToPdf } from './JpgToPdf';
 export { default as PdfToPdfA } from './PdfToPdfA';
 export { default as HtmlToPdf } from './HtmlToPdf';

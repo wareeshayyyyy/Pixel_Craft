@@ -1,219 +1,431 @@
-/* import React, { useState } from 'react';
+// SignUp.js - Updated signup component with enhanced Google button and home redirect
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
-//import FacebookLogin from 'react-facebook-login';
-import FacebookLogin from '@greatsumini/react-facebook-login';
-const SignupPage = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [error, setError] = useState('');
+import { Eye, EyeOff, User, Mail, Lock } from 'lucide-react';
+import { GoogleLogin } from '@react-oauth/google';
+import authService from '../../services/authService';
+import SuccessModal from '../../components/SuccessModal';
+
+const SignUp = () => {
+  const [formData, setFormData] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
+    agreeToTerms: false
+  });
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [errors, setErrors] = useState({});
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
   const navigate = useNavigate();
 
-  // Handle form submission
-  const handleSubmit = (e) => {
+  const handleInputChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value
+    }));
+    
+    // Clear specific error when user starts typing
+    if (errors[name]) {
+      setErrors(prev => ({
+        ...prev,
+        [name]: ''
+      }));
+    }
+  };
+
+  const validateForm = () => {
+    const newErrors = {};
+
+    if (!formData.firstName.trim()) {
+      newErrors.firstName = 'First name is required';
+    }
+
+    if (!formData.lastName.trim()) {
+      newErrors.lastName = 'Last name is required';
+    }
+
+    if (!formData.email.trim()) {
+      newErrors.email = 'Email is required';
+    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+      newErrors.email = 'Email is invalid';
+    }
+
+    if (!formData.password) {
+      newErrors.password = 'Password is required';
+    } else if (formData.password.length < 8) {
+      newErrors.password = 'Password must be at least 8 characters';
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      newErrors.confirmPassword = 'Passwords do not match';
+    }
+
+    if (!formData.agreeToTerms) {
+      newErrors.agreeToTerms = 'You must agree to the terms and conditions';
+    }
+
+    return newErrors;
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Basic validation
-    if (!email || !password || !confirmPassword) {
-      setError('Please fill in all fields');
+    
+    const formErrors = validateForm();
+    if (Object.keys(formErrors).length > 0) {
+      setErrors(formErrors);
       return;
     }
-    if (password !== confirmPassword) {
-      setError('Passwords do not match');
-      return;
+
+    setIsLoading(true);
+    setErrors({});
+
+    try {
+      const isUp = await authService.health();
+      if (!isUp) throw new Error('API server is not reachable. Please start your backend.');
+
+      // Use the auth service's login/register endpoints if available
+      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          first_name: formData.firstName,
+          last_name: formData.lastName,
+          email: formData.email,
+          password: formData.password
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        localStorage.setItem('token', data.token || data.access_token);
+        // Show success modal instead of navigating immediately
+        setShowSuccessModal(true);
+      } else {
+        const contentType = response.headers.get('content-type') || '';
+        const err = contentType.includes('application/json') ? await response.json() : { message: await response.text() };
+        setErrors({ submit: err.message || 'Registration failed' });
+      }
+    } catch (error) {
+      setErrors({ submit: 'Network error. Please try again.' });
+      console.error('Registration error:', error);
+    } finally {
+      setIsLoading(false);
     }
-    // Here you would typically call your authentication API
-    console.log('Signing up with:', { email, password });
-    // On successful signup:
-    navigate('/');
   };
 
-  // Google Signup Success
-  const handleGoogleSuccess = (credentialResponse) => {
-    console.log('Google Signup Success:', credentialResponse);
-    // Here you would verify the credential with your backend
-    navigate('/'); // Redirect after successful signup
+  const handleGoogleSuccess = async (credentialResponse) => {
+    try {
+      setIsLoading(true);
+      setErrors({});
+      
+      console.log('Google SignUp Success:', credentialResponse);
+      
+      // First, verify the credential is present
+      if (!credentialResponse.credential) {
+        throw new Error('No credential received from Google');
+      }
+      
+      // Send the credential to your backend
+      // Use same google login endpoint used by authService if backend supports it
+      const result = await authService.googleLogin(credentialResponse.credential);
+      if (result.success) {
+        // Navigate directly to home page for Google OAuth (as requested)
+        navigate('/');
+      } else {
+        setErrors({ submit: result.error || 'Google signup failed' });
+      }
+    } catch (error) {
+      const errorMessage = error.message || 'Google signup failed. Please try again.';
+      setErrors({ submit: errorMessage });
+      console.error('Google signup error:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  // Google Signup Error
-  const handleGoogleError = () => {
-    console.log('Google Signup Failed');
-    setError('Google signup failed. Please try again.');
+  const handleGoogleError = (error) => {
+    console.log('Google SignUp Failed:', error);
+    setErrors({ submit: 'Google signup failed. Please try again.' });
   };
 
-  // Facebook Signup Response
-  const handleFacebookResponse = (response) => {
-    console.log('Facebook Signup Success:', response);
-    // Here you would send the access token to your backend
-    navigate('/');
-  };
-
-  // Facebook Signup Failure
-  const handleFacebookFailure = (error) => {
-    console.log('Facebook Signup Failed:', error);
-    setError('Facebook signup failed. Please try again.');
+  const handleSuccessModalContinue = () => {
+    setShowSuccessModal(false);
+    navigate('/login');
   };
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-          Create a new account
+        <div className="text-center">
+          <Link to="/" className="text-2xl font-bold text-red-500">
+            P PixelCraft
+          </Link>
+        </div>
+        <h2 className="mt-6 text-center text-3xl font-bold text-gray-900">
+          Create your account
         </h2>
         <p className="mt-2 text-center text-sm text-gray-600">
-          Or{' '}
-          <Link to="/login" className="font-medium text-red-500 hover:text-red-600">
-            sign in to your existing account
+          Already have an account?{' '}
+          <Link
+            to="/login"
+            className="font-medium text-red-500 hover:text-red-600 transition-colors"
+          >
+            Sign in here
           </Link>
         </p>
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
-          {error && (
-            <div className="mb-4 bg-red-50 border-l-4 border-red-500 p-4">
-              <div className="flex">
-                <div className="flex-shrink-0">
-                  <svg className="h-5 w-5 text-red-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                  </svg>
+          <form className="space-y-6" onSubmit={handleSubmit}>
+            {errors.submit && (
+              <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md text-sm">
+                {errors.submit}
+              </div>
+            )}
+
+            {/* Name Fields */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-2">
+                  First name
+                </label>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <input
+                    id="firstName"
+                    name="firstName"
+                    type="text"
+                    required
+                    value={formData.firstName}
+                    onChange={handleInputChange}
+                    className={`w-full pl-10 pr-3 py-2 border rounded-md shadow-sm bg-blue-50 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 ${
+                      errors.firstName ? 'border-red-300' : 'border-gray-300'
+                    }`}
+                    placeholder="First name"
+                  />
                 </div>
-                <div className="ml-3">
-                  <p className="text-sm text-red-700">{error}</p>
+                {errors.firstName && (
+                  <p className="mt-1 text-sm text-red-600">{errors.firstName}</p>
+                )}
+              </div>
+
+              <div>
+                <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 mb-2">
+                  Last name
+                </label>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <input
+                    id="lastName"
+                    name="lastName"
+                    type="text"
+                    required
+                    value={formData.lastName}
+                    onChange={handleInputChange}
+                    className={`w-full pl-10 pr-3 py-2 border rounded-md shadow-sm bg-blue-50 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 ${
+                      errors.lastName ? 'border-red-300' : 'border-gray-300'
+                    }`}
+                    placeholder="Last name"
+                  />
                 </div>
+                {errors.lastName && (
+                  <p className="mt-1 text-sm text-red-600">{errors.lastName}</p>
+                )}
               </div>
             </div>
-          )}
 
-          <form className="space-y-6" onSubmit={handleSubmit}>
+            {/* Email */}
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
                 Email address
               </label>
-              <div className="mt-1">
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                 <input
                   id="email"
                   name="email"
                   type="email"
                   autoComplete="email"
                   required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-red-500 focus:border-red-500 sm:text-sm"
+                  value={formData.email}
+                  onChange={handleInputChange}
+                  className={`w-full pl-10 pr-3 py-2 border rounded-md shadow-sm bg-blue-50 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 ${
+                    errors.email ? 'border-red-300' : 'border-gray-300'
+                  }`}
+                  placeholder="Enter your email"
                 />
               </div>
+              {errors.email && (
+                <p className="mt-1 text-sm text-red-600">{errors.email}</p>
+              )}
             </div>
 
+            {/* Password */}
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
                 Password
               </label>
-              <div className="mt-1">
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                 <input
                   id="password"
                   name="password"
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   autoComplete="new-password"
                   required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-red-500 focus:border-red-500 sm:text-sm"
+                  value={formData.password}
+                  onChange={handleInputChange}
+                  className={`w-full pl-10 pr-10 py-2 border rounded-md shadow-sm bg-blue-50 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 ${
+                    errors.password ? 'border-red-300' : 'border-gray-300'
+                  }`}
+                  placeholder="Create a password"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-0 flex items-center pr-3"
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4 text-gray-400" />
+                  ) : (
+                    <Eye className="h-4 w-4 text-gray-400" />
+                  )}
+                </button>
               </div>
+              {errors.password && (
+                <p className="mt-1 text-sm text-red-600">{errors.password}</p>
+              )}
             </div>
 
+            {/* Confirm Password */}
             <div>
-              <label htmlFor="confirm-password" className="block text-sm font-medium text-gray-700">
-                Confirm Password
+              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
+                Confirm password
               </label>
-              <div className="mt-1">
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                 <input
-                  id="confirm-password"
-                  name="confirm-password"
-                  type="password"
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  type={showConfirmPassword ? 'text' : 'password'}
                   autoComplete="new-password"
                   required
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-red-500 focus:border-red-500 sm:text-sm"
+                  value={formData.confirmPassword}
+                  onChange={handleInputChange}
+                  className={`w-full pl-10 pr-10 py-2 border rounded-md shadow-sm bg-blue-50 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 ${
+                    errors.confirmPassword ? 'border-red-300' : 'border-gray-300'
+                  }`}
+                  placeholder="Confirm your password"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute inset-y-0 right-0 flex items-center pr-3"
+                >
+                  {showConfirmPassword ? (
+                    <EyeOff className="h-4 w-4 text-gray-400" />
+                  ) : (
+                    <Eye className="h-4 w-4 text-gray-400" />
+                  )}
+                </button>
               </div>
+              {errors.confirmPassword && (
+                <p className="mt-1 text-sm text-red-600">{errors.confirmPassword}</p>
+              )}
             </div>
 
-            <div className="flex items-center">
-              <input
-                id="terms"
-                name="terms"
-                type="checkbox"
-                className="h-4 w-4 text-red-500 focus:ring-red-500 border-gray-300 rounded"
-                required
-              />
-              <label htmlFor="terms" className="ml-2 block text-sm text-gray-900">
-                I agree to the <Link to="/terms" className="text-red-500 hover:text-red-600">Terms of Service</Link> and <Link to="/privacy" className="text-red-500 hover:text-red-600">Privacy Policy</Link>
-              </label>
+            {/* Terms Agreement */}
+            <div>
+              <div className="flex items-start">
+                <input
+                  id="agreeToTerms"
+                  name="agreeToTerms"
+                  type="checkbox"
+                  checked={formData.agreeToTerms}
+                  onChange={handleInputChange}
+                  className={`h-4 w-4 text-red-500 focus:ring-red-500 border-gray-300 rounded mt-1 ${
+                    errors.agreeToTerms ? 'border-red-300' : ''
+                  }`}
+                />
+                <label htmlFor="agreeToTerms" className="ml-3 block text-sm text-gray-900">
+                  I agree to the{' '}
+                  <Link to="/terms" className="text-red-500 hover:text-red-600">
+                    Terms and Conditions
+                  </Link>
+                  {' '}and{' '}
+                  <Link to="/privacy" className="text-red-500 hover:text-red-600">
+                    Privacy Policy
+                  </Link>
+                </label>
+              </div>
+              {errors.agreeToTerms && (
+                <p className="mt-1 text-sm text-red-600">{errors.agreeToTerms}</p>
+              )}
             </div>
 
             <div>
               <button
                 type="submit"
-                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-500 hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                disabled={isLoading}
+                className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-500 hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
-                Create Account
+                {isLoading ? 'Creating account...' : 'Create account'}
               </button>
             </div>
-          </form>
 
-          <div className="mt-6">
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300" />
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500">
-                  Or sign up with
-                </span>
-              </div>
-            </div>
-
-            <div className="mt-6 grid grid-cols-2 gap-3">
-              <div>
-                <GoogleOAuthProvider clientId="YOUR_GOOGLE_CLIENT_ID">
-                  <GoogleLogin
-                    onSuccess={handleGoogleSuccess}
-                    onError={handleGoogleError}
-                    render={({ onClick }) => (
-                      <button
-                        onClick={onClick}
-                        className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
-                      >
-                        <svg className="w-5 h-5 mr-2" aria-hidden="true" fill="currentColor" viewBox="0 0 24 24">
-                          <path d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z" />
-                        </svg>
-                        Google
-                      </button>
-                    )}
-                  />
-                </GoogleOAuthProvider>
+            <div className="mt-6">
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-300" />
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="px-2 bg-white text-gray-500">Or sign up with</span>
+                </div>
               </div>
 
-              <div>
-                <FacebookLogin
-                  appId="YOUR_FACEBOOK_APP_ID"
-                  autoLoad={false}
-                  fields="name,email,picture"
-                  callback={handleFacebookResponse}
-                  onFailure={handleFacebookFailure}
-                  cssClass="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
-                  icon="fa-facebook mr-2"
-                  textButton="Facebook"
+              <div className="mt-6">
+                {/* Google SignUp Button */}
+                <GoogleLogin
+                  onSuccess={handleGoogleSuccess}
+                  onError={handleGoogleError}
+                  useOneTap
+                  theme="outline"
+                  size="large"
+                  text="signup_with"
+                  shape="rectangular"
+                  width="100%"
+                  disabled={isLoading}
                 />
               </div>
             </div>
-          </div>
+          </form>
+        </div>
+
+        <div className="mt-6 text-center text-sm text-gray-600">
+          <p>
+            By creating an account, you'll have access to advanced features,
+            cloud storage, and priority support.
+          </p>
         </div>
       </div>
+
+      {/* Success Modal */}
+      <SuccessModal
+        isOpen={showSuccessModal}
+        onClose={() => setShowSuccessModal(false)}
+        onContinue={handleSuccessModalContinue}
+        title="Account Created Successfully! 🎉"
+        message="Your account has been registered properly. Welcome to PixelCraft! Please login with your new account to access all our powerful tools and features."
+        buttonText="Go to Login"
+      />
     </div>
   );
 };
 
-export default SignupPage; */
+export default SignUp;

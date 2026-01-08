@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import FileUpload from '../../components/PdfTools/FileUpload';
+import FileUpload from './FileUpload';
 // PowerPointToPdf.jsx
 const PptToPdf = () => {
   const [files, setFiles] = useState([]);

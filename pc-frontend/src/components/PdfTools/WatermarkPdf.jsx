@@ -1,6 +1,8 @@
 import { useState } from "react";
-import PdfToolLayout from "../../components/PdfTools/PdfToolLayout";
 import FileUpload from "../../components/PdfTools/FileUpload";
+import { DownloadPdfButton } from './DownloadButton';
+import PDFService from '../../services/pdfService';
+import { getErrorMessage } from '../../utils/errorUtils';
 
 // WatermarkPdf.jsx
 const WatermarkPdf = () => {
@@ -10,32 +12,63 @@ const WatermarkPdf = () => {
     text: '',
     opacity: 0.5,
     position: 'center',
-    size: 'medium'
+    size: 'medium',
+    rotation: 0,
+    fontSize: 50
   });
   const [isProcessing, setIsProcessing] = useState(false);
   const [result, setResult] = useState(null);
+  const [hasError, setHasError] = useState(false);
+  const [processedFile, setProcessedFile] = useState(null);
 
   const handleFilesSelected = (selectedFiles) => {
     setFiles(selectedFiles);
+    setResult(null);
+    setHasError(false);
+    setProcessedFile(null);
   };
 
   const handleWatermark = async () => {
+    console.log('handleWatermark called');
+    console.log('Files state:', files);
+    console.log('Files length:', files.length);
+    
     if (files.length === 0) {
-      alert('Please select a PDF file to watermark');
+      console.log('No files selected');
+      setResult('Please select a PDF file to watermark');
+      setHasError(true);
       return;
     }
 
     if (watermarkSettings.type === 'text' && !watermarkSettings.text) {
-      alert('Please enter watermark text');
+      console.log('No watermark text entered');
+      setResult('Please enter watermark text');
+      setHasError(true);
       return;
     }
 
+    console.log('Starting watermark process...');
+    console.log('File to process:', files[0]);
+    console.log('Watermark settings:', watermarkSettings);
+    
     setIsProcessing(true);
+    setProcessedFile(null);
+    setResult(null);
+    setHasError(false);
+    
     try {
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      const blob = await PDFService.watermarkPDF(files[0], watermarkSettings);
+      console.log('Watermark successful, blob received:', blob);
+      setProcessedFile({
+        data: blob,
+        fileName: files[0].name.replace('.pdf', '_watermarked')
+      });
       setResult('Watermark added successfully!');
+      setHasError(false);
     } catch (error) {
       console.error('Error adding watermark:', error);
+      setResult(getErrorMessage(error));
+      setHasError(true);
     } finally {
       setIsProcessing(false);
     }
@@ -141,6 +174,36 @@ const WatermarkPdf = () => {
                 <option value="large">Large</option>
               </select>
             </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Rotation: {watermarkSettings.rotation}°
+              </label>
+              <input
+                type="range"
+                min="-180"
+                max="180"
+                step="15"
+                value={watermarkSettings.rotation}
+                onChange={(e) => setWatermarkSettings(prev => ({...prev, rotation: parseInt(e.target.value)}))}
+                className="w-full"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Font Size: {watermarkSettings.fontSize}px
+              </label>
+              <input
+                type="range"
+                min="10"
+                max="100"
+                step="5"
+                value={watermarkSettings.fontSize}
+                onChange={(e) => setWatermarkSettings(prev => ({...prev, fontSize: parseInt(e.target.value)}))}
+                className="w-full"
+              />
+            </div>
           </div>
         </div>
 
@@ -155,8 +218,22 @@ const WatermarkPdf = () => {
         </div>
 
         {result && (
-          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-            <p className="text-green-800">{result}</p>
+          <div className={`border rounded-lg p-4 ${
+            hasError ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200'
+          }`}>
+            <p className={hasError ? 'text-red-800' : 'text-green-800'}>
+              {result}
+            </p>
+            {processedFile && !hasError && (
+              <div className="mt-4">
+                <DownloadPdfButton
+                  downloadData={processedFile.data}
+                  fileName={processedFile.fileName}
+                  isProcessing={isProcessing}
+                  variant="success"
+                />
+              </div>
+            )}
           </div>
         )}
       </div>

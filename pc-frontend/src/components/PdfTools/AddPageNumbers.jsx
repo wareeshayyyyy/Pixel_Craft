@@ -1,14 +1,18 @@
 import React, { useState } from 'react';
 import FileUpload from './FileUpload';
 import { FiHash } from 'react-icons/fi';
+import { DownloadPdfButton } from './DownloadButton';
+import PDFService from '../../services/pdfService';
 
 const AddPageNumbers = () => {
   const [file, setFile] = useState(null);
   const [position, setPosition] = useState('bottom-center');
   const [startPage, setStartPage] = useState(1);
   const [format, setFormat] = useState('number');
+  const [fontSize, setFontSize] = useState(12);
   const [isProcessing, setIsProcessing] = useState(false);
   const [result, setResult] = useState(null);
+  const [processedFile, setProcessedFile] = useState(null);
 
   const handleFileSelected = (selectedFiles) => {
     setFile(selectedFiles[0]);
@@ -21,12 +25,24 @@ const AddPageNumbers = () => {
     }
 
     setIsProcessing(true);
+    setProcessedFile(null);
     try {
-      // Simulate processing
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      const numberingSettings = {
+        position,
+        startPage,
+        format,
+        fontSize
+      };
+      
+      const blob = await PDFService.addPageNumbers(file, numberingSettings);
+      setProcessedFile({
+        data: blob,
+        fileName: file.name.replace('.pdf', '_numbered')
+      });
       setResult('Page numbers added successfully!');
     } catch (error) {
       console.error('Error adding page numbers:', error);
+      setResult('Failed to add page numbers: ' + error.message);
     } finally {
       setIsProcessing(false);
     }
@@ -100,6 +116,21 @@ const AddPageNumbers = () => {
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
               />
             </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Font Size: {fontSize}px
+              </label>
+              <input
+                type="range"
+                min="8"
+                max="24"
+                step="1"
+                value={fontSize}
+                onChange={(e) => setFontSize(parseInt(e.target.value))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+              />
+            </div>
           </div>
         </div>
 
@@ -107,16 +138,25 @@ const AddPageNumbers = () => {
           <button
             onClick={handleAddPageNumbers}
             disabled={!file || isProcessing}
-            className="bg-red-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center mx-auto"
+            className="bg-red-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center mx-auto mr-4"
           >
             <FiHash className="mr-2" />
             {isProcessing ? 'Adding Page Numbers...' : 'Add Page Numbers'}
           </button>
+          
+          {processedFile && (
+            <DownloadPdfButton
+              downloadData={processedFile.data}
+              fileName={processedFile.fileName}
+              isProcessing={isProcessing}
+              variant="success"
+            />
+          )}
         </div>
 
         {result && (
-          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-            <p className="text-green-800">{result}</p>
+          <div className={`border rounded-lg p-4 ${result.includes('Failed') ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200'}`}>
+            <p className={result.includes('Failed') ? 'text-red-800' : 'text-green-800'}>{result}</p>
           </div>
         )}
       </div>

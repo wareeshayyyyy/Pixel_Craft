@@ -1,6 +1,7 @@
-// ComparePdf.jsx - Fixed version
+// ComparePdf.jsx - Updated with Download Button
 import React, { useState } from 'react';
 import FileUpload from './FileUpload';
+import DownloadButton from './DownloadButton'; // Import the download button
 
 const ComparePdf = () => {
   const [files, setFiles] = useState([]);
@@ -11,6 +12,7 @@ const ComparePdf = () => {
   });
   const [isProcessing, setIsProcessing] = useState(false);
   const [result, setResult] = useState(null);
+  const [processedFile, setProcessedFile] = useState(null); // Store processed file data
 
   const handleFilesSelected = (selectedFiles) => {
     setFiles(selectedFiles);
@@ -33,11 +35,61 @@ const ComparePdf = () => {
     try {
       // Simulate processing
       await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Simulate processed file data - replace with actual API response
+      const mockProcessedData = {
+        url: null, // If you have a download URL from your backend
+        data: new Blob(['mock comparison data'], { type: 'application/pdf' }), // Mock blob data
+        fileName: `comparison_${Date.now()}`
+      };
+      
+      setProcessedFile(mockProcessedData);
       setResult('Comparison completed successfully!');
     } catch (error) {
       console.error('Error comparing PDFs:', error);
+      setResult('Error occurred during comparison');
     } finally {
       setIsProcessing(false);
+    }
+  };
+
+  // Custom download handler for complex scenarios
+  const handleCustomDownload = async () => {
+    try {
+      // Add your custom download logic here
+      // For example, making an API call to get the file
+      const base = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+      const response = await fetch(`${base}/api/download-comparison`, {
+        method: 'POST',
+        body: JSON.stringify({ files, options }),
+        headers: { 'Content-Type': 'application/json' }
+      });
+
+      if (!response.ok) {
+        const ct = response.headers.get('content-type') || '';
+        const text = await response.text().catch(() => '');
+        throw new Error(`Download failed: ${response.status} - ${ct} - ${text.substring(0,200)}`);
+      }
+
+      const contentType = response.headers.get('content-type') || '';
+      // Expecting PDF or other binary
+      if (!contentType.includes('application/pdf') && !contentType.includes('application/octet-stream') && !contentType.includes('application/zip')) {
+        const text = await response.text();
+        throw new Error(`Unexpected content-type: ${contentType}. Response: ${text.substring(0,200)}`);
+      }
+
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `comparison_${Date.now()}.${options.outputFormat}`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Download failed:', error);
+      throw error;
     }
   };
 
@@ -110,8 +162,8 @@ const ComparePdf = () => {
           </div>
         </div>
 
-        {/* Action Button */}
-        <div className="text-center mb-6">
+        {/* Action Buttons */}
+        <div className="flex justify-center gap-4 mb-6">
           <button
             onClick={handleCompare}
             disabled={files.length < 2 || isProcessing}
@@ -119,88 +171,49 @@ const ComparePdf = () => {
           >
             {isProcessing ? 'Comparing...' : 'Compare PDFs'}
           </button>
+
+          {/* Download Button - Only show after processing */}
+          {processedFile && (
+            <DownloadButton
+              downloadData={processedFile.data}
+              downloadUrl={processedFile.url}
+              fileName={processedFile.fileName}
+              fileExtension={options.outputFormat}
+              disabled={isProcessing}
+              variant="success"
+            />
+          )}
         </div>
+
+        {/* Alternative: Custom download handler */}
+        {result && result.includes('successfully') && (
+          <div className="text-center mb-6">
+            <DownloadButton
+              onDownload={handleCustomDownload}
+              fileName="pdf_comparison_report"
+              fileExtension={options.outputFormat}
+              disabled={isProcessing}
+              variant="primary"
+              className="mx-2"
+            >
+              Download Comparison Report
+            </DownloadButton>
+          </div>
+        )}
 
         {/* Result Display */}
         {result && (
-          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-            <p className="text-green-800">{result}</p>
+          <div className={`border rounded-lg p-4 ${
+            result.includes('successfully') 
+              ? 'bg-green-50 border-green-200 text-green-800' 
+              : 'bg-red-50 border-red-200 text-red-800'
+          }`}>
+            <p>{result}</p>
           </div>
         )}
       </div>
     </div>
   );
 };
-
 
 export default ComparePdf;
-
-
-
-
-/* // ComparePdf.jsx
-const ComparePdf = () => {
-  const [files, setFiles] = useState([]);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [result, setResult] = useState(null);
-
-  const handleFilesSelected = (selectedFiles) => {
-    setFiles(selectedFiles);
-  };
-
-  const handleCompare = async () => {
-    if (files.length < 2) {
-      alert('Please select two PDF files to compare');
-      return;
-    }
-
-    setIsProcessing(true);
-    try {
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      setResult('PDF comparison completed successfully!');
-    } catch (error) {
-      console.error('Error comparing PDFs:', error);
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="max-w-4xl mx-auto">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-4">Compare PDF</h1>
-          <p className="text-gray-600">Compare two PDF documents to find differences</p>
-        </div>
-
-        <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-          <FileUpload
-            onFilesSelected={handleFilesSelected}
-            acceptedTypes=".pdf"
-            multiple={true}
-            maxFiles={2}
-            title="Upload PDF Files to Compare"
-            description="Select exactly two PDF files to compare"
-          />
-        </div>
-
-        <div className="text-center mb-6">
-          <button
-            onClick={handleCompare}
-            disabled={files.length < 2 || isProcessing}
-            className="bg-red-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isProcessing ? 'Comparing...' : 'Compare PDFs'}
-          </button>
-        </div>
-
-        {result && (
-          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-            <p className="text-green-800">{result}</p>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-};
- */

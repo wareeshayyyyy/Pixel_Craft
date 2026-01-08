@@ -1,14 +1,18 @@
 import React, { useState } from 'react';
 import FileUpload from './FileUpload';
 import { FiImage } from 'react-icons/fi';
+import { DownloadPdfButton } from "./DownloadButton";
 
 const JpgToPdf = () => {
   const [files, setFiles] = useState([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [result, setResult] = useState(null);
+  const [processedFile, setProcessedFile] = useState(null);
 
   const handleFileSelected = (selectedFiles) => {
     setFiles(selectedFiles);
+    setProcessedFile(null);
+    setResult(null);
   };
 
   const handleConvertToPdf = async () => {
@@ -18,12 +22,33 @@ const JpgToPdf = () => {
     }
 
     setIsProcessing(true);
+    setProcessedFile(null);
     try {
-      // Simulate processing
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      const formData = new FormData();
+      files.forEach((file, index) => {
+        formData.append('images', file);
+      });
+
+      const base = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+      const response = await fetch(`${base}/api/convert/jpg-to-pdf`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error(`Conversion failed: ${response.status}`);
+      }
+
+      const blob = await response.blob();
+      setProcessedFile({
+        data: blob,
+        fileName: 'combined_images'
+      });
+
       setResult(`Successfully converted ${files.length} JPG image(s) to PDF!`);
     } catch (error) {
       console.error('Error converting JPG to PDF:', error);
+      setResult('Failed to convert: ' + error.message);
     } finally {
       setIsProcessing(false);
     }
@@ -63,14 +88,25 @@ const JpgToPdf = () => {
         )}
 
         <div className="text-center mb-6">
-          <button
-            onClick={handleConvertToPdf}
-            disabled={files.length === 0 || isProcessing}
-            className="bg-blue-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center mx-auto"
-          >
-            <FiImage className="mr-2" />
-            {isProcessing ? 'Converting...' : 'Convert to PDF'}
-          </button>
+          <div className="flex justify-center space-x-4">
+            <button
+              onClick={handleConvertToPdf}
+              disabled={files.length === 0 || isProcessing}
+              className="bg-blue-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+            >
+              <FiImage className="mr-2" />
+              {isProcessing ? 'Converting...' : 'Convert to PDF'}
+            </button>
+
+            {processedFile && (
+              <DownloadPdfButton
+                downloadData={processedFile.data}
+                fileName={processedFile.fileName}
+                isProcessing={isProcessing}
+                variant="success"
+              />
+            )}
+          </div>
         </div>
 
         {result && (

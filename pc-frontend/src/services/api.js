@@ -18,8 +18,15 @@ class ApiService {
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.detail || `HTTP ${response.status}`);
+        let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.detail || errorData.message || errorData.error || errorMessage;
+        } catch (jsonError) {
+          // If we can't parse JSON, use the status text
+          console.warn('Could not parse error response as JSON:', jsonError);
+        }
+        throw new Error(errorMessage);
       }
 
       return response;
@@ -73,4 +80,5 @@ class ApiService {
   }
 }
 
-export default new ApiService();
+const apiService = new ApiService();
+export default apiService;

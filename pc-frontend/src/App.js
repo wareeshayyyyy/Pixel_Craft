@@ -1,17 +1,16 @@
 ﻿import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { GoogleOAuthProvider } from '@react-oauth/google';
 import HomePage from './pages/HomePage';
 import ToolsPage from './pages/ToolsPage';
 import BusinessPage from './pages/BusinessPage';
+import ImageToolsPage from './pages/ImageToolsPage';
 import LoginPage from './pages/auth/LoginPage';
 import SignupPage from './pages/auth/SignupPage';
+import AuthCallback from './pages/auth/AuthCallback';
 import Layout from './components/Layout';
-import FileUpload from './components/FileUpload';
-import PdfCategories from './components/PdfTools/PdfCategories';
-import PdfHeroSection from './components/PdfTools/PdfHeroSection';
-import ImageToolsContent from './pages/tools/ImageToolsContent';
-import ToolGrid from './components/ToolGrid';
-import PdfToolsPage from './pages/PdfToolsPage';
+import ProtectedRoute from './components/ProtectedRoute';
+import Dashboard from './pages/Dashboard';
 
 // Image Tools
 import CompressImage from './pages/tools/CompressImage';
@@ -28,8 +27,10 @@ import UpscaleImage from './pages/tools/UpscaleImage';
 import CollageMaker from './pages/tools/CollageMaker';
 import HtmlToImage from './pages/tools/HtmlToImage';
 
-// PDF Tools 
-import PdfTools from './components/PdfTools/PdfTools';
+// PDF Tools - Main Page
+import PdfToolsPage from './pages/PdfToolsPage';
+
+// PDF Tools - Individual Components
 import ComparePdf from './components/PdfTools/ComparePdf';
 import CompressPdf from './components/PdfTools/CompressPdf';
 import EditPdf from './components/PdfTools/EditPdf';
@@ -48,7 +49,7 @@ import PdfToExcel from './components/PdfTools/PdfToExcel';
 import ExcelToPdf from './components/PdfTools/ExcelToPdf';
 import PdfToPpt from './components/PdfTools/PdfToPpt';
 import PptToPdf from './components/PdfTools/PptToPdf';
-import PdfToImage from './components/PdfTools/PdfToImage';
+
 import PdfToText from './components/PdfTools/PdfToText';
 import UnlockPdf from './components/PdfTools/UnlockPdf';
 import Workflow from './components/PdfTools/Workflow';
@@ -63,76 +64,97 @@ import CropPdf from './components/PdfTools/CropPdf';
 import JpgToPdf from './components/PdfTools/JpgToPdf';
 import HtmlToPdf from './components/PdfTools/HtmlToPdf';
 import WordToPdf from './components/PdfTools/WordToPdf';
-
-
+import BirthdayCelebration from './components/BirthdayCelebration';
 
 function App() {
   return (
-    <Router>
-      <Layout>
-        <Routes>
-          {/* Main Routes */}
-          <Route path="/" element={<HomePage />} />
-          <Route path="/tools" element={<ToolsPage />} />
-          <Route path="/business" element={<BusinessPage />} />
-          
-          {/* Authentication Routes */}
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/signup" element={<SignupPage />} />
-          
-          {/* Image Tool Routes */}
-          <Route path="/tools/compress" element={<CompressImage />} />
-          <Route path="/tools/resize" element={<ResizeImage />} />
-          <Route path="/tools/crop" element={<CropImage />} />
-          <Route path="/tools/upscale" element={<UpscaleImage />} />
-          <Route path="/tools/rotate" element={<RotateImage />} />
-          <Route path="/tools/remove-background" element={<RemoveBackground />} />
-          <Route path="/tools/blur-face" element={<BlurFace />} />
-          <Route path="/tools/convert-to-jpg" element={<ConvertToJpg />} />
-          <Route path="/tools/html-to-image" element={<HtmlToImage />} />
-          <Route path="/tools/photo-editor" element={<PhotoEditor />} />
-          <Route path="/tools/watermark" element={<WatermarkImage />} />
-          <Route path="/tools/collage-maker" element={<CollageMaker />} />
-          <Route path="/tools/meme-generator" element={<MemeGenerator />} />
-          
-          {/* PDF Tool Routes */}
-          <Route path="/tools/pdf" element={<PdfTools />} />
-          <Route path="/tools/compare-pdf" element={<ComparePdf />} />
-          <Route path="/tools/compress-pdf" element={<CompressPdf />} />
-          <Route path="/tools/edit-pdf" element={<EditPdf />} />
-          <Route path="/tools/merge-pdf" element={<MergePdf />} />
-          <Route path="/tools/ocr-pdf" element={<OcrPdf />} />
-          <Route path="/tools/pdf-to-pdfa" element={<PdfToPdfA />} />
-          <Route path="/tools/pdf-to-word" element={<PdfToWord />} />
-          <Route path="/tools/protect-pdf" element={<ProtectPdf />} />
-          <Route path="/tools/redact-pdf" element={<RedactPdf />} />
-          <Route path="/tools/repair-pdf" element={<RepairPdf />} />
-          <Route path="/tools/rotate-pdf" element={<RotatePdf />} />
-          <Route path="/tools/sign-pdf" element={<SignPdf />} />
-          <Route path="/tools/split-pdf" element={<SplitPdf />} />
-          <Route path="/tools/watermark-pdf" element={<WatermarkPdf />} />
-          <Route path="/tools/pdf-to-excel" element={<PdfToExcel />} />
-          <Route path="/tools/excel-to-pdf" element={<ExcelToPdf />} />
-          <Route path="/tools/pdf-to-ppt" element={<PdfToPpt />} />
-          <Route path="/tools/ppt-to-pdf" element={<PptToPdf />} />
-          <Route path="/tools/pdf-to-image" element={<PdfToImage />} />
-          <Route path="/tools/pdf-to-text" element={<PdfToText />} />
-          <Route path="/tools/unlock-pdf" element={<UnlockPdf />} />
-          <Route path="/tools/workflow" element={<Workflow />} />
-          
-          {/* New PDF Tool Routes */}
-          <Route path="/tools/remove-pages" element={<RemovePages />} />
-          <Route path="/tools/extract-pages" element={<ExtractPages />} />
-          <Route path="/tools/organize-pdf" element={<OrganizePdf />} />
-          <Route path="/tools/scan-to-pdf" element={<ScanToPdf />} />
-          <Route path="/tools/add-page-numbers" element={<AddPageNumbers />} />
-          <Route path="/tools/crop-pdf" element={<CropPdf />} />
-          <Route path="/tools/jpg-to-pdf" element={<JpgToPdf />} />
-          <Route path="/tools/html-to-pdf" element={<HtmlToPdf />} />
-          <Route path="/tools/word-to-pdf" element={<WordToPdf />} />
-        </Routes>
-      </Layout>
-    </Router>
+    <GoogleOAuthProvider clientId={process.env.REACT_APP_GOOGLE_CLIENT_ID}>
+      <Router>
+        <Layout>
+          <Routes>
+            {/* Main Routes */}
+            <Route path="/" element={<HomePage />} />
+            <Route path="/tools" element={<ToolsPage />} />
+            <Route path="/business" element={<BusinessPage />} />
+            <Route path="/image-tools" element={<ImageToolsPage />} />
+            
+            {/* Authentication Routes */}
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/signup" element={<SignupPage />} />
+            <Route path="/auth/callback" element={<AuthCallback />} />
+            
+            {/* Protected Dashboard Route */}
+            <Route 
+              path="/dashboard" 
+              element={
+                <ProtectedRoute>
+                  <Dashboard />
+                </ProtectedRoute>
+              } 
+            />
+            
+            {/* Image Tool Routes */}
+            <Route path="/tools/compress" element={<CompressImage />} />
+            <Route path="/tools/resize" element={<ResizeImage />} />
+            <Route path="/tools/crop" element={<CropImage />} />
+            <Route path="/tools/upscale" element={<UpscaleImage />} />
+            <Route path="/tools/rotate" element={<RotateImage />} />
+            <Route path="/tools/remove-background" element={<RemoveBackground />} />
+            <Route path="/tools/blur-face" element={<BlurFace />} />
+            <Route path="/tools/convert-to-jpg" element={<ConvertToJpg />} />
+            <Route path="/tools/html-to-image" element={<HtmlToImage />} />
+            <Route path="/tools/photo-editor" element={<PhotoEditor />} />
+            <Route path="/tools/watermark" element={<WatermarkImage />} />
+            <Route path="/tools/collage-maker" element={<CollageMaker />} />
+            <Route path="/tools/meme-generator" element={<MemeGenerator />} />
+            
+            {/* PDF Tools Main Page - This shows all PDF tools */}
+            <Route path="/tools/pdf" element={<PdfToolsPage />} />
+            
+            {/* Individual PDF Tool Routes */}
+            <Route path="/tools/compare-pdf" element={<ComparePdf />} />
+            <Route path="/tools/compress-pdf" element={<CompressPdf />} />
+            <Route path="/tools/edit-pdf" element={<EditPdf />} />
+            <Route path="/tools/merge-pdf" element={<MergePdf />} />
+            <Route path="/tools/ocr-pdf" element={<OcrPdf />} />
+            <Route path="/tools/pdf-to-pdfa" element={<PdfToPdfA />} />
+            <Route path="/tools/pdf-to-word" element={<PdfToWord />} />
+            <Route path="/tools/protect-pdf" element={<ProtectPdf />} />
+            <Route path="/tools/redact-pdf" element={<RedactPdf />} />
+            <Route path="/tools/repair-pdf" element={<RepairPdf />} />
+            <Route path="/tools/rotate-pdf" element={<RotatePdf />} />
+            <Route path="/tools/sign-pdf" element={<SignPdf />} />
+            <Route path="/tools/split-pdf" element={<SplitPdf />} />
+            <Route path="/tools/watermark-pdf" element={<WatermarkPdf />} />
+            <Route path="/tools/pdf-to-excel" element={<PdfToExcel />} />
+            <Route path="/tools/excel-to-pdf" element={<ExcelToPdf />} />
+            <Route path="/tools/pdf-to-ppt" element={<PdfToPpt />} />
+            <Route path="/tools/ppt-to-pdf" element={<PptToPdf />} />
+
+            <Route path="/tools/pdf-to-text" element={<PdfToText />} />
+            <Route path="/tools/unlock-pdf" element={<UnlockPdf />} />
+            <Route path="/tools/workflow" element={<Workflow />} />
+            
+            {/* New PDF Tool Routes */}
+            <Route path="/tools/remove-pages" element={<RemovePages />} />
+            <Route path="/tools/extract-pages" element={<ExtractPages />} />
+            <Route path="/tools/organize-pdf" element={<OrganizePdf />} />
+            <Route path="/tools/scan-to-pdf" element={<ScanToPdf />} />
+            <Route path="/tools/add-page-numbers" element={<AddPageNumbers />} />
+            <Route path="/tools/crop-pdf" element={<CropPdf />} />
+            <Route path="/tools/jpg-to-pdf" element={<JpgToPdf />} />
+            <Route path="/tools/html-to-pdf" element={<HtmlToPdf />} />
+            <Route path="/tools/word-to-pdf" element={<WordToPdf />} />
+            
+            {/* Birthday Celebration */}
+            <Route path="/birthday" element={<BirthdayCelebration />} />
+            
+            {/* Fallback Route */}
+            <Route path="*" element={<HomePage />} />
+          </Routes>
+        </Layout>
+      </Router>
+    </GoogleOAuthProvider>
   );
 }
 

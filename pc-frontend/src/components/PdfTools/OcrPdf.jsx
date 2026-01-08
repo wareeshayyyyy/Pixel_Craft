@@ -157,7 +157,7 @@ const OCRFileUpload = ({ onFilesSelected, files, onRemoveFile }) => {
                     {file.type === 'application/pdf' ? (
                       <FileText className="w-8 h-8 text-red-500" />
                     ) : (
-                      <Image className="w-8 h-8 text-blue-500" />
+                      <ImageIcon className="w-8 h-8 text-blue-500" />
                     )}
                     <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full"></div>
                   </div>

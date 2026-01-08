@@ -9,7 +9,7 @@ const Footer = () => {
           <div>
             <div className="flex items-center mb-4">
               <span className="text-2xl font-bold text-red-500 mr-2">P</span>
-              <h3 className="text-2xl font-bold">PixelCraft</h3>
+              <h3 className="text-2xl font-bold">ixelCraft</h3>
             </div>
             <p className="text-gray-400">The fastest and easiest way to modify your images and documents online.</p>
           </div>

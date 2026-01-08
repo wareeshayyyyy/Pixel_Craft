@@ -1,15 +1,33 @@
 version: '3.8'
 
 services:
+  mongodb:
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=password
+    networks:
+      - pixelcraft-network
+
   backend:
-    build: ./backend
+    build: ./pc-backend
     ports:
       - "8000:8000"
     environment:
       - ALLOWED_ORIGINS=http://localhost:3000
       - DEBUG=False
+      - MONGODB_URI=mongodb://admin:password@mongodb:27017
+      - MONGODB_DB_NAME=pixelcraft
     volumes:
-      - ./backend/temp:/app/temp
+      - ./pc-backend/temp:/app/temp
+    depends_on:
+      - mongodb
+    networks:
+      - pixelcraft-network
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
@@ -17,7 +35,7 @@ services:
       retries: 3
 
   frontend:
-    build: ./frontend
+    build: ./pc-frontend
     ports:
       - "3000:3000"
     environment:
@@ -25,7 +43,12 @@ services:
     depends_on:
       backend:
         condition: service_healthy
+    networks:
+      - pixelcraft-network
+
+volumes:
+  mongodb_data:
 
 networks:
-  default:
+  pixelcraft-network:
     driver: bridge

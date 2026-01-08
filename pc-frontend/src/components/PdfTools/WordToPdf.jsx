@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import FileUpload from './FileUpload';
 import { FiFileText } from 'react-icons/fi';
+import DownloadPdfButton from './DownloadButton';
 
 const WordToPdf = () => {
   const [files, setFiles] = useState([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [result, setResult] = useState(null);
+  const [processedFiles, setProcessedFiles] = useState(null);
 
   const handleFileSelected = (selectedFiles) => {
     setFiles(selectedFiles);
@@ -18,12 +20,36 @@ const WordToPdf = () => {
     }
 
     setIsProcessing(true);
+    setProcessedFiles(null);
     try {
-      // Simulate processing
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      const formData = new FormData();
+      files.forEach((file, index) => {
+        formData.append('files', file);
+      });
+
+      const base = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+      const response = await fetch(`${base}/api/convert/word-to-pdf`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error(`Conversion failed: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const pdfFiles = await Promise.all(
+        data.fileUrls.map(async url => {
+          const fileResponse = await fetch(url);
+          return fileResponse.blob();
+        })
+      );
+      
+      setProcessedFiles(pdfFiles);
       setResult(`Successfully converted ${files.length} Word document(s) to PDF!`);
     } catch (error) {
       console.error('Error converting Word to PDF:', error);
+      setResult('Failed to convert Word to PDF: ' + error.message);
     } finally {
       setIsProcessing(false);
     }
@@ -84,6 +110,20 @@ const WordToPdf = () => {
         {result && (
           <div className="bg-green-50 border border-green-200 rounded-lg p-4">
             <p className="text-green-800">{result}</p>
+            {processedFiles && processedFiles.length > 0 && (
+              <div className="mt-4">
+                <h4 className="font-medium text-gray-900 mb-2">Download Converted PDFs:</h4>
+                <div className="space-y-2">
+                  {processedFiles.map((file, index) => (
+                    <DownloadPdfButton 
+                      key={index} 
+                      file={file} 
+                      text={`Download PDF ${index + 1}`}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

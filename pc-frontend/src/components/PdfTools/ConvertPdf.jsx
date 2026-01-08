@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import FileUpload from '../FileUpload';
+import FileUpload from './FileUpload';
 // ConvertPdf.jsx - Continuation from where it was cut off
 const ConvertPdf = ({ 
   title = "Convert PDF", 

@@ -1,7 +1,5 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import RecentFiles from '../../components/PdfTools/RecentFiles';
-import ToolCard from '../../components/PdfTools/ToolCard';
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -31,20 +29,30 @@ const Dashboard = () => {
       
       <div className="recent-files-section">
         <h2>Your Recent Files</h2>
-        <RecentFiles files={recentFiles} />
+        <div className="files-list">
+          {recentFiles.map((file, index) => (
+            <div key={index} className="file-item">
+              <span>{file.name}</span>
+              <span>{file.date}</span>
+              <span>{file.size}</span>
+            </div>
+          ))}
+        </div>
       </div>
       
       <div className="featured-tools-section">
         <h2>Featured Tools</h2>
         <div className="tools-grid">
           {featuredTools.map(tool => (
-            <ToolCard
+            <div
               key={tool.id}
-              icon={tool.icon}
-              name={tool.name}
-              description={tool.description}
+              className="tool-card"
               onClick={() => handleToolClick(tool.id)}
-            />
+            >
+              <div className="tool-icon">{tool.icon}</div>
+              <div className="tool-name">{tool.name}</div>
+              <div className="tool-description">{tool.description}</div>
+            </div>
           ))}
         </div>
       </div>

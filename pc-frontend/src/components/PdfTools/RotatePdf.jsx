@@ -1,6 +1,7 @@
 import { useState } from "react";
-import PdfToolLayout from "../../components/PdfTools/PdfToolLayout";
 import FileUpload from "../../components/PdfTools/FileUpload";
+import { DownloadPdfButton } from './DownloadButton';
+import PDFService from '../../services/pdfService';
 
 // RotatePdf.jsx
 const RotatePdf = () => {
@@ -11,6 +12,7 @@ const RotatePdf = () => {
   });
   const [isProcessing, setIsProcessing] = useState(false);
   const [result, setResult] = useState(null);
+  const [processedFile, setProcessedFile] = useState(null);
 
   const handleFilesSelected = (selectedFiles) => {
     setFiles(selectedFiles);
@@ -23,11 +25,17 @@ const RotatePdf = () => {
     }
 
     setIsProcessing(true);
+    setProcessedFile(null);
     try {
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      const blob = await PDFService.rotatePDF(files[0], rotationSettings.angle);
+      setProcessedFile({
+        data: blob,
+        fileName: files[0].name.replace('.pdf', '_rotated')
+      });
       setResult('PDF pages rotated successfully!');
     } catch (error) {
       console.error('Error rotating PDF:', error);
+      setResult('Failed to rotate PDF: ' + error.message);
     } finally {
       setIsProcessing(false);
     }
@@ -101,8 +109,18 @@ const RotatePdf = () => {
         </div>
 
         {result && (
-          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-            <p className="text-green-800">{result}</p>
+          <div className={`border rounded-lg p-4 ${result.includes('Failed') ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200'}`}>
+            <p className={result.includes('Failed') ? 'text-red-800' : 'text-green-800'}>{result}</p>
+            {processedFile && (
+              <div className="mt-4">
+                <DownloadPdfButton
+                  downloadData={processedFile.data}
+                  fileName={processedFile.fileName}
+                  isProcessing={isProcessing}
+                  variant="success"
+                />
+              </div>
+            )}
           </div>
         )}
       </div>

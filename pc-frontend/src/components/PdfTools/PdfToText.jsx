@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
-import FileUpload from '../FileUpload';
+import FileUpload from './FileUpload';
+import DownloadButton from './DownloadButton';
+import PDFService from '../../services/pdfService';
 // PdfToText.jsx
 const PdfToText = () => {
   const [files, setFiles] = useState([]);
@@ -10,6 +12,7 @@ const PdfToText = () => {
   });
   const [isProcessing, setIsProcessing] = useState(false);
   const [result, setResult] = useState(null);
+  const [processedFile, setProcessedFile] = useState(null);
 
   const handleFilesSelected = (selectedFiles) => {
     setFiles(selectedFiles);
@@ -22,11 +25,19 @@ const PdfToText = () => {
     }
 
     setIsProcessing(true);
+    setProcessedFile(null);
     try {
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      const textContent = await PDFService.extractText(files[0]);
+      const blob = new Blob([textContent], { type: 'text/plain' });
+      setProcessedFile({
+        data: blob,
+        fileName: files[0].name.replace('.pdf', '_extracted'),
+        format: extractionSettings.format
+      });
       setResult('Text extracted from PDF successfully!');
     } catch (error) {
       console.error('Error extracting text:', error);
+      setResult('Failed to extract text: ' + error.message);
     } finally {
       setIsProcessing(false);
     }
@@ -95,15 +106,25 @@ const PdfToText = () => {
           <button
             onClick={handleExtract}
             disabled={files.length === 0 || isProcessing}
-            className="bg-red-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="bg-red-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed mr-4"
           >
             {isProcessing ? 'Extracting...' : 'Extract Text'}
           </button>
+
+          {processedFile && (
+            <DownloadButton
+              downloadData={processedFile.data}
+              fileName={processedFile.fileName}
+              fileExtension={processedFile.format}
+              isProcessing={isProcessing}
+              variant="success"
+            />
+          )}
         </div>
 
         {result && (
-          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-            <p className="text-green-800">{result}</p>
+          <div className={`border rounded-lg p-4 ${result.includes('Failed') ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200'}`}>
+            <p className={result.includes('Failed') ? 'text-red-800' : 'text-green-800'}>{result}</p>
           </div>
         )}
       </div>

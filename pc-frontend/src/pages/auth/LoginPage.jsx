@@ -1,64 +1,111 @@
-/* import React, { useState } from 'react';
+// Login.js - Updated login component with enhanced Google button and home redirect
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
-//import FacebookLogin from 'react-facebook-login';
-import FacebookLogin from '@greatsumini/react-facebook-login';
+import { Eye, EyeOff, Mail, Lock } from 'lucide-react';
+import { GoogleLogin } from '@react-oauth/google';
+import authService from '../../services/authService';
 
-const LoginPage = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+const Login = () => {
+  const [formData, setFormData] = useState({
+    email: '',
+    password: '',
+    rememberMe: false
+  });
+  const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
-  // Handle form submission
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    // Basic validation
-    if (!email || !password) {
-      setError('Please fill in all fields');
-      return;
+  const handleInputChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value
+    }));
+    
+    // Clear error when user starts typing
+    if (error) {
+      setError('');
     }
-    // Here you would typically call your authentication API
-    console.log('Logging in with:', { email, password });
-    // On successful login:
-    navigate('/');
   };
 
-  // Google Login Success
-  const handleGoogleSuccess = (credentialResponse) => {
-    console.log('Google Login Success:', credentialResponse);
-    // Here you would verify the credential with your backend
-    navigate('/'); // Redirect after successful login
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError('');
+
+    try {
+      // Health check before login
+      const isUp = await authService.health();
+      if (!isUp) {
+        throw new Error('API server is not reachable. Please start your backend.');
+      }
+
+      const result = await authService.login(formData.email, formData.password, formData.rememberMe);
+      if (result.success) {
+        navigate('/');
+      } else {
+        setError(result.error || 'Login failed');
+      }
+    } catch (error) {
+      setError(error.message || 'Network error. Please try again.');
+      console.error('Login error:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  // Google Login Error
-  const handleGoogleError = () => {
-    console.log('Google Login Failed');
+  const handleGoogleSuccess = async (credentialResponse) => {
+    try {
+      setIsLoading(true);
+      setError('');
+      
+      console.log('Google Login Success:', credentialResponse);
+      
+      // First, try to verify the credential locally (optional)
+      if (!credentialResponse.credential) {
+        throw new Error('No credential received from Google');
+      }
+      
+      // Send the credential to your backend
+      const result = await authService.googleLogin(credentialResponse.credential);
+      if (result.success) {
+        // Navigate directly to home page for Google OAuth (as requested)
+        navigate('/');
+      } else {
+        setError(result.error || 'Google login failed');
+      }
+    } catch (error) {
+      const errorMessage = error.message || 'Google login failed. Please try again.';
+      setError(errorMessage);
+      console.error('Google login error:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleGoogleError = (error) => {
+    console.log('Google Login Failed:', error);
     setError('Google login failed. Please try again.');
-  };
-
-  // Facebook Login Response
-  const handleFacebookResponse = (response) => {
-    console.log('Facebook Login Success:', response);
-    // Here you would send the access token to your backend
-    navigate('/'); // Redirect after successful login
-  };
-
-  // Facebook Login Failure
-  const handleFacebookFailure = (error) => {
-    console.log('Facebook Login Failed:', error);
-    setError('Facebook login failed. Please try again.');
   };
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+        <div className="text-center">
+          <Link to="/" className="text-2xl font-bold text-red-500">
+            P PixelCraft
+          </Link>
+        </div>
+        <h2 className="mt-6 text-center text-3xl font-bold text-gray-900">
           Sign in to your account
         </h2>
         <p className="mt-2 text-center text-sm text-gray-600">
           Or{' '}
-          <Link to="/signup" className="font-medium text-red-500 hover:text-red-600">
+          <Link
+            to="/signup"
+            className="font-medium text-red-500 hover:text-red-600 transition-colors"
+          >
             create a new account
           </Link>
         </p>
@@ -66,64 +113,75 @@ const LoginPage = () => {
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
-          {error && (
-            <div className="mb-4 bg-red-50 border-l-4 border-red-500 p-4">
-              <div className="flex">
-                <div className="flex-shrink-0">
-                  <svg className="h-5 w-5 text-red-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                  </svg>
-                </div>
-                <div className="ml-3">
-                  <p className="text-sm text-red-700">{error}</p>
-                </div>
-              </div>
-            </div>
-          )}
-
           <form className="space-y-6" onSubmit={handleSubmit}>
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md text-sm">
+                {error}
+              </div>
+            )}
+
+            {/* Email Field */}
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
                 Email address
               </label>
-              <div className="mt-1">
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                 <input
                   id="email"
                   name="email"
                   type="email"
                   autoComplete="email"
                   required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-red-500 focus:border-red-500 sm:text-sm"
+                  value={formData.email}
+                  onChange={handleInputChange}
+                  className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm bg-blue-50 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                  placeholder="Enter your email"
                 />
               </div>
             </div>
 
+            {/* Password Field */}
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
                 Password
               </label>
-              <div className="mt-1">
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                 <input
                   id="password"
                   name="password"
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   autoComplete="current-password"
                   required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-red-500 focus:border-red-500 sm:text-sm"
+                  value={formData.password}
+                  onChange={handleInputChange}
+                  className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-md shadow-sm bg-blue-50 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                  placeholder="Enter your password"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-0 flex items-center pr-3"
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4 text-gray-400" />
+                  ) : (
+                    <Eye className="h-4 w-4 text-gray-400" />
+                  )}
+                </button>
               </div>
             </div>
 
+            {/* Remember Me & Forgot Password */}
             <div className="flex items-center justify-between">
               <div className="flex items-center">
                 <input
                   id="remember-me"
-                  name="remember-me"
+                  name="rememberMe"
                   type="checkbox"
+                  checked={formData.rememberMe}
+                  onChange={handleInputChange}
                   className="h-4 w-4 text-red-500 focus:ring-red-500 border-gray-300 rounded"
                 />
                 <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900">
@@ -132,73 +190,64 @@ const LoginPage = () => {
               </div>
 
               <div className="text-sm">
-                <Link to="/forgot-password" className="font-medium text-red-500 hover:text-red-600">
+                <Link
+                  to="/forgot-password"
+                  className="font-medium text-red-500 hover:text-red-600 transition-colors"
+                >
                   Forgot your password?
                 </Link>
               </div>
             </div>
 
+            {/* Sign In Button */}
             <div>
               <button
                 type="submit"
-                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-500 hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                disabled={isLoading}
+                className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-500 hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
-                Sign in
+                {isLoading ? 'Signing in...' : 'Sign in'}
               </button>
             </div>
-          </form>
 
-          <div className="mt-6">
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300" />
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500">
-                  Or continue with
-                </span>
-              </div>
-            </div>
-
-            <div className="mt-6 grid grid-cols-2 gap-3">
-              <div>
-                <GoogleOAuthProvider clientId="YOUR_GOOGLE_CLIENT_ID">
-                  <GoogleLogin
-                    onSuccess={handleGoogleSuccess}
-                    onError={handleGoogleError}
-                    render={({ onClick }) => (
-                      <button
-                        onClick={onClick}
-                        className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
-                      >
-                        <svg className="w-5 h-5 mr-2" aria-hidden="true" fill="currentColor" viewBox="0 0 24 24">
-                          <path d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z" />
-                        </svg>
-                        Google
-                      </button>
-                    )}
-                  />
-                </GoogleOAuthProvider>
+            {/* Divider */}
+            <div className="mt-6">
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-300" />
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="px-2 bg-white text-gray-500">Or continue with</span>
+                </div>
               </div>
 
-              <div>
-                <FacebookLogin
-                  appId="YOUR_FACEBOOK_APP_ID"
-                  autoLoad={false}
-                  fields="name,email,picture"
-                  callback={handleFacebookResponse}
-                  onFailure={handleFacebookFailure}
-                  cssClass="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
-                  icon="fa-facebook mr-2"
-                  textButton="Facebook"
+              {/* Google Login Button */}
+              <div className="mt-6">
+                <GoogleLogin
+                  onSuccess={handleGoogleSuccess}
+                  onError={handleGoogleError}
+                  useOneTap
+                  theme="outline"
+                  size="large"
+                  text="continue_with"
+                  shape="rectangular"
+                  width="100%"
+                  disabled={isLoading}
                 />
               </div>
             </div>
-          </div>
+          </form>
+        </div>
+
+        {/* Additional Info */}
+        <div className="mt-6 text-center text-sm text-gray-600">
+          <p>
+            Secure login with industry-standard encryption and multi-factor authentication support.
+          </p>
         </div>
       </div>
     </div>
   );
 };
 
-export default LoginPage; */
+export default Login;

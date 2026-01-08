@@ -1,7 +1,5 @@
 import React, { useState } from 'react';
-import FileUpload from '../../components/PdfTools/FileUpload';
-
-import PdfToolLayout from "../../components/PdfTools/PdfToolLayout";
+import FileUpload from './FileUpload';
 
  // PdfToPdfA.jsx
 const PdfToPdfA = () => {

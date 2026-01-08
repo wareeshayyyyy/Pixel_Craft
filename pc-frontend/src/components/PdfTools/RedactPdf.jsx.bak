@@ -1,0 +1,431 @@
+import React, { useState, useRef, useCallback, useEffect } from 'react';
+import { 
+  Upload, 
+  EyeOff, 
+  Download, 
+  FileText, 
+  AlertCircle, 
+  CheckCircle, 
+  Loader,
+  MousePointer,
+  Square,
+  Type,
+  Trash2,
+  RotateCcw,
+  ZoomIn,
+  ZoomOut,
+  X,
+  Shield,
+  Search,
+  Settings,
+  Eye,
+  Scan
+} from 'lucide-react';
+import * as pdfjsLib from 'pdfjs-dist';
+import { PDFService } from '../../services/pdfService';
+
+// Set up PDF.js worker
+pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+
+const pdfService = new PDFService();
+
+const RedactPdf = () => {
+  const [file, setFile] = useState(null);
+  const [previewImage, setPreviewImage] = useState(null);
+  const [pdfContent, setPdfContent] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [redactionAreas, setRedactionAreas] = useState([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [redactionTool, setRedactionTool] = useState('rectangle');
+  const [isDrawing, setIsDrawing] = useState(false);
+  const [startPoint, setStartPoint] = useState({ x: 0, y: 0 });
+  const [ocrInProgress, setOcrInProgress] = useState(false);
+  const canvasRef = useRef(null);
+
+  const performOCR = async (canvas) => {
+    try {
+      setOcrInProgress(true);
+      // Convert canvas to blob
+      const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+      
+      // Send to backend for OCR processing
+      const formData = new FormData();
+      formData.append('image', blob);
+      
+      const response = await pdfService.performOCR(formData);
+      
+      if (!response.ok) {
+        throw new Error('OCR processing failed');
+      }
+      
+      const result = await response.json();
+      return result.text || [];
+    } catch (error) {
+      console.error('OCR processing error:', error);
+      throw error;
+    } finally {
+      setOcrInProgress(false);
+    }
+  };
+  
+  useEffect(() => {
+    if (!file) {
+      loadPdfPreview();
+    }
+  }, [file]);
+
+  const extractTextContent = async (pdf, pageNumber) => {
+    try {
+      const page = await pdf.getPage(pageNumber);
+      const textContent = await page.getTextContent();
+      return textContent.items.map(item => ({
+        text: item.str,
+        x: item.transform[4],
+        y: item.transform[5],
+        width: item.width,
+        height: item.height,
+        fontHeight: item.transform[3] - item.transform[1]
+      }));
+    } catch (error) {
+      console.error(`Failed to extract text from page ${pageNumber}:`, error);
+      return [];
+    }
+  };
+
+  const handleFileChange = async (event) => {
+    const selectedFile = event.target.files[0];
+    if (selectedFile) {
+      setFile(selectedFile);
+      setLoading(true);
+      setError(null);
+      try {
+        await loadPdfPreview(selectedFile);
+      } catch (err) {
+        console.error('Error handling file:', err);
+        setError('Failed to load PDF file');
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
+  const loadPdfPreview = async (file) => {
+    if (!file) return;
+    
+    setLoading(true);
+    setError(null);
+    const canvas = canvasRef.current;
+    
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const typedarray = new Uint8Array(arrayBuffer);
+      const loadingTask = pdfjsLib.getDocument(typedarray);
+      const pdf = await loadingTask.promise;
+      
+      setTotalPages(pdf.numPages);
+      
+      // First try to extract text normally
+      const allContent = [];
+      for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+        const textContent = await extractTextContent(pdf, pageNum);
+        
+        if (textContent.length === 0) {
+          // If no text found, try OCR
+          const page = await pdf.getPage(pageNum);
+          const viewport = page.getViewport({ scale: 1.0 });
+          
+          const tempCanvas = document.createElement('canvas');
+          tempCanvas.width = viewport.width;
+          tempCanvas.height = viewport.height;
+          
+          const renderContext = {
+            canvasContext: tempCanvas.getContext('2d'),
+            viewport: viewport
+          };
+          
+          await page.render(renderContext).promise;
+          
+          try {
+            const ocrText = await performOCR(tempCanvas);
+            allContent.push({
+              pageNumber: pageNum,
+              content: ocrText.map(item => ({
+                text: item.text,
+                x: item.bounds.x,
+                y: item.bounds.y,
+                width: item.bounds.width,
+                height: item.bounds.height
+              }))
+            });
+          } catch (ocrErr) {
+            console.warn(`OCR failed for page ${pageNum}:`, ocrErr);
+            allContent.push({
+              pageNumber: pageNum,
+              content: []
+            });
+          }
+        } else {
+          allContent.push({
+            pageNumber: pageNum,
+            content: textContent
+          });
+        }
+      }
+      
+      setPdfContent(allContent);
+      
+      // Load preview of first page
+      const page = await pdf.getPage(1);
+      const viewport = page.getViewport({ scale: 1.5 });
+      
+      if (canvas) {
+        canvas.width = viewport.width;
+        canvas.height = viewport.height;
+        
+        const renderContext = {
+          canvasContext: canvas.getContext('2d'),
+          viewport: viewport
+        };
+        
+        await page.render(renderContext).promise;
+        drawRedactionAreas();
+      }
+    } catch (err) {
+      console.error('Preview loading error:', err);
+      setError('Error loading PDF. Falling back to basic preview.');
+      await loadBasicPdfPreview(file);
+    } finally {
+      setLoading(false);
+    }
+  };  const loadBasicPdfPreview = async (file) => {
+    // Use PDF.js for basic preview with OCR fallback
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const typedarray = new Uint8Array(arrayBuffer);
+      const loadingTask = pdfjsLib.getDocument(typedarray);
+      
+      const pdf = await loadingTask.promise;
+      setTotalPages(pdf.numPages);
+
+      // Try to perform OCR on each page
+      const allContent = [];
+      for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+        const page = await pdf.getPage(pageNum);
+        const viewport = page.getViewport({ scale: 1.0 });
+        
+        // Create temporary canvas for OCR
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = viewport.width;
+        tempCanvas.height = viewport.height;
+        
+        const renderContext = {
+          canvasContext: tempCanvas.getContext('2d'),
+          viewport: viewport
+        };
+        
+        await page.render(renderContext).promise;
+        
+        try {
+          // Attempt OCR on the rendered page
+          const text = await performOCR(tempCanvas);
+          allContent.push({
+            pageNumber: pageNum,
+            content: text.map(item => ({
+              text: item.text,
+              x: item.bounds.x,
+              y: item.bounds.y,
+              width: item.bounds.width,
+              height: item.bounds.height
+            }))
+          });
+        } catch (ocrErr) {
+          console.warn(`OCR failed for page ${pageNum}:`, ocrErr);
+          allContent.push({
+            pageNumber: pageNum,
+            content: []
+          });
+        }
+      }
+      
+      setPdfContent(allContent);
+      
+      // Display first page preview
+      const page = await pdf.getPage(1);
+      const viewport = page.getViewport({ scale: 1.0 });
+      
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
+          
+          const renderContext = {
+            canvasContext: canvas.getContext('2d'),
+            viewport: viewport
+          };
+          
+          await page.render(renderContext).promise;
+          
+          // Set minimal content for search
+          setPdfContent([{ pageNumber: 1, text: 'Basic preview mode' }]);
+        } catch (err) {
+          console.error('PDF preview error:', err);
+          renderBasicPlaceholder(canvas);
+        }
+      };
+      
+      fileReader.readAsArrayBuffer(file);
+    } catch (err) {
+      console.error('File reading error:', err);
+      renderBasicPlaceholder(canvas);
+    }
+  };
+
+  const renderBasicPlaceholder = (canvas) => {
+    if (!canvas) return;
+    
+    const ctx = canvas.getContext('2d');
+    canvas.width = 600;
+    canvas.height = 800;
+
+    // Fill background
+    ctx.fillStyle = '#f8f9fa';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Add text
+    ctx.fillStyle = '#666666';
+    ctx.font = '14px Arial';
+    ctx.fillText('PDF Preview - Upload a file to see actual content', 50, 100);
+    ctx.fillText('OCR functionality will extract real text for redaction', 50, 130);
+    
+    setTotalPages(1);
+    setCurrentPage(1);
+  };
+
+  const handleCanvasMouseDown = (e) => {
+    if (redactionTool !== 'rectangle') return;
+    
+    const canvas = canvasRef.current;
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    
+    setIsDrawing(true);
+    setStartPoint({ x, y });
+  };
+
+  const handleCanvasMouseMove = (e) => {
+    if (!isDrawing || redactionTool !== 'rectangle') return;
+    
+    const canvas = canvasRef.current;
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    drawRedactionAreas();
+    
+    // Draw current selection rectangle
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+    ctx.fillRect(
+      startPoint.x,
+      startPoint.y,
+      x - startPoint.x,
+      y - startPoint.y
+    );
+  };
+
+  const handleCanvasMouseUp = () => {
+    if (!isDrawing || redactionTool !== 'rectangle') return;
+    
+    setIsDrawing(false);
+    
+    const canvas = canvasRef.current;
+    const rect = canvas.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+    
+    // Add new redaction area
+    setRedactionAreas([
+      ...redactionAreas,
+      {
+        x: Math.min(startPoint.x, x),
+        y: Math.min(startPoint.y, y),
+        width: Math.abs(x - startPoint.x),
+        height: Math.abs(y - startPoint.y),
+        page: currentPage
+      }
+    ]);
+  };
+
+  const drawRedactionAreas = () => {
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    
+    redactionAreas
+      .filter(area => area.page === currentPage)
+      .forEach(area => {
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+        ctx.fillRect(area.x, area.y, area.width, area.height);
+      });
+  };
+
+  const handleFileChange = async (event) => {
+    const selectedFile = event.target.files[0];
+    if (selectedFile) {
+      setFile(selectedFile);
+      // loadPdfPreview will be called by useEffect
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-gray-900">PDF Redaction Tool</h1>
+          <p className="mt-2 text-lg text-gray-600">Securely redact sensitive information from your PDF documents</p>
+          {error && (
+            <div className="mt-4 p-4 bg-red-50 rounded-md">
+              <p className="text-sm text-red-700">{error}</p>
+            </div>
+          )}
+          {loading && (
+            <div className="mt-4 flex items-center justify-center space-x-2">
+              <Loader className="w-5 h-5 text-blue-500 animate-spin" />
+              <p className="text-sm text-gray-600">
+                {ocrInProgress ? 'Performing OCR extraction...' : 'Processing PDF...'}
+              </p>
+            </div>
+          )}
+
+        <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3 mb-8">
+          <div className="text-center p-6 bg-white rounded-xl shadow-sm">
+            <Eye className="w-12 h-12 text-purple-500 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">OCR Technology</h3>
+            <p className="text-gray-600">Extract and process text from scanned documents</p>
+          </div>
+          <div className="text-center p-6 bg-white rounded-xl shadow-sm">
+            <Shield className="w-12 h-12 text-red-500 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Secure Redaction</h3>
+            <p className="text-gray-600">Permanently remove sensitive information</p>
+          </div>
+          <div className="text-center p-6 bg-white rounded-xl shadow-sm">
+            <Search className="w-12 h-12 text-blue-500 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Smart Detection</h3>
+            <p className="text-gray-600">Automatically find emails, phone numbers, and patterns</p>
+          </div>
+          <div className="text-center p-6 bg-white rounded-xl shadow-sm">
+            <Settings className="w-12 h-12 text-green-500 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Custom Patterns</h3>
+            <p className="text-gray-600">Create custom regex patterns for specific content types</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default RedactPdf;

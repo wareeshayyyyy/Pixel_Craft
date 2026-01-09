@@ -77,22 +77,22 @@ function App() {
             <Route path="/tools" element={<ToolsPage />} />
             <Route path="/business" element={<BusinessPage />} />
             <Route path="/image-tools" element={<ImageToolsPage />} />
-            
+
             {/* Authentication Routes */}
             <Route path="/login" element={<LoginPage />} />
             <Route path="/signup" element={<SignupPage />} />
             <Route path="/auth/callback" element={<AuthCallback />} />
-            
+
             {/* Protected Dashboard Route */}
-            <Route 
-              path="/dashboard" 
+            <Route
+              path="/dashboard"
               element={
                 <ProtectedRoute>
                   <Dashboard />
                 </ProtectedRoute>
-              } 
+              }
             />
-            
+
             {/* Image Tool Routes */}
             <Route path="/tools/compress" element={<CompressImage />} />
             <Route path="/tools/resize" element={<ResizeImage />} />
@@ -107,10 +107,10 @@ function App() {
             <Route path="/tools/watermark" element={<WatermarkImage />} />
             <Route path="/tools/collage-maker" element={<CollageMaker />} />
             <Route path="/tools/meme-generator" element={<MemeGenerator />} />
-            
+
             {/* PDF Tools Main Page - This shows all PDF tools */}
             <Route path="/tools/pdf" element={<PdfToolsPage />} />
-            
+
             {/* Individual PDF Tool Routes */}
             <Route path="/tools/compare-pdf" element={<ComparePdf />} />
             <Route path="/tools/compress-pdf" element={<CompressPdf />} />
@@ -134,7 +134,7 @@ function App() {
             <Route path="/tools/pdf-to-text" element={<PdfToText />} />
             <Route path="/tools/unlock-pdf" element={<UnlockPdf />} />
             <Route path="/tools/workflow" element={<Workflow />} />
-            
+
             {/* New PDF Tool Routes */}
             <Route path="/tools/remove-pages" element={<RemovePages />} />
             <Route path="/tools/extract-pages" element={<ExtractPages />} />
@@ -145,10 +145,10 @@ function App() {
             <Route path="/tools/jpg-to-pdf" element={<JpgToPdf />} />
             <Route path="/tools/html-to-pdf" element={<HtmlToPdf />} />
             <Route path="/tools/word-to-pdf" element={<WordToPdf />} />
-            
+
             {/* Birthday Celebration */}
             <Route path="/birthday" element={<BirthdayCelebration />} />
-            
+
             {/* Fallback Route */}
             <Route path="*" element={<HomePage />} />
           </Routes>
